@@ -5,7 +5,7 @@ import csv
 import numpy as np
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
-pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/datasets/dataset/glands/"
+pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/datasets/dataset/tissue/"
 test = pathToImages + "1 (19).jpg"
 
 dictPhotos = {}
@@ -84,7 +84,7 @@ def process_image(img):
     img = cv2.medianBlur(img, 5)
     #    cv2.imshow('median', img)
     numberOfCells = count_cells(img, oimg)
-    cv2.imshow("final", oimg)
+    #cv2.imshow("final", oimg)
     k = cv2.waitKey(0)
 
     return numberOfCells
@@ -108,23 +108,23 @@ def detectGlands(img):
     # image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(oimg, contours, -1, (0, 255, 255), 1
 
-    binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), 22)
-    binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), 33)
+    binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=22)
+    binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=33)
 
-    cv2.imshow("bin", binMat)
-    cv2.waitKey(0)
+    #cv2.imshow("bin", binMat)
+    #cv2.waitKey(0)
 
-    cv2.rectangle(binMat, (0.0, 0.0), (binMat.width(), binMat.height()), 255.0, 10)
+    cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
     image, contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
     for contour in contours:
 
         contourArea = cv2.contourArea(contour)
-        if contourArea < 100 * 100 or contourArea > 0.9 * image.size().area():
+        if contourArea < 100 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
             continue
 
-        cv2.drawContours(oimg, contour, -1, (0.0, 0.0, 255.0), 2)
+        cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 2)
 
     cv2.imshow("glands", oimg)
     cv2.waitKey()
