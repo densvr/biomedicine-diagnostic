@@ -1,11 +1,12 @@
 import os
 
 import cv2
+import csv
 import numpy as np
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
-pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
-test = pathToImages + "1 (19).jpg"
+datasetPath = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
+test = datasetPath + "1 (19).jpg"
 
 dictPhotos = {}
 dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
@@ -83,7 +84,7 @@ def process_image(img):
     img = cv2.medianBlur(img, 5)
     #    cv2.imshow('median', img)
     numberOfCells = count_cells(img, oimg)
-    #cv2.imshow("final", oimg)
+    # cv2.imshow("final", oimg)
     k = cv2.waitKey(0)
 
     return numberOfCells
@@ -110,8 +111,8 @@ def detectGlands(img):
     binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=22)
     binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=33)
 
-    #cv2.imshow("bin", binMat)
-    #cv2.waitKey(0)
+    # cv2.imshow("bin", binMat)
+    # cv2.waitKey(0)
 
     cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
@@ -143,18 +144,34 @@ def calcPercentage(imgName, numberOfCells):
 def main():
     globalSum = 0
     globalCount = 0
-    for imgName in os.listdir(pathToImages):
-        img = cv2.imread(os.path.join(pathToImages, imgName))
+    for imgName in os.listdir(datasetPath):
+        img = cv2.imread(os.path.join(datasetPath, imgName))
         try:
             img = cv2.resize(img, (800, 800))
         except:
             pass
 
-        if img is not None:
-            print(imgName)
-            detectGlands(img)
-            # globalSum += calcPercentage(imgName, numberOfCells)
-            globalCount += 1
+        if img is None:
+            continue
+
+        glands = []
+
+        with open(datasetPath + '1.jpg.csv', 'rt') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                try:
+                    cells = list(map(lambda x: int(x), filter(lambda x: x.strip() != "", row[0].split(";"))))
+                    points = []
+                    for i in range(1, int(np.size(cells, 0) / 2 - 1)):
+                        points += [[cells[i * 2], cells[i * 2 + 1]]]
+                    glands += points
+                except:
+                    continue
+
+        print(imgName)
+        detectGlands(img)
+        # globalSum += calcPercentage(imgName, numberOfCells)
+        globalCount += 1
 
     print("Final percentage: ", globalSum / float(globalCount))
 
