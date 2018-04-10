@@ -146,6 +146,7 @@ def main():
     globalCount = 0
     for imgName in os.listdir(datasetPath):
         img = cv2.imread(os.path.join(datasetPath, imgName))
+        srcImg = img
         try:
             img = cv2.resize(img, (800, 800))
         except:
@@ -174,9 +175,21 @@ def main():
                 except:
                     continue
 
+        imgWithLabelledGlands = srcImg.copy()
+        for gland in glands:
+            nparr = np.array(gland[0])
+            cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 0), 2)
+            nparr = np.array(gland[1])
+            cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 255), 2)
+        imgWithLabelledGlands = cv2.resize(imgWithLabelledGlands, (600, 600))
+        cv2.imshow(imgName + " labelled glands", imgWithLabelledGlands)
+        while 1:
+            k = cv2.waitKey()
+            if k == 27:  # Esc key to stop
+                break
 
         print(imgName)
-        detectGlands(img)
+        #detectGlands(img)
         # globalSum += calcPercentage(imgName, numberOfCells)
         globalCount += 1
 
