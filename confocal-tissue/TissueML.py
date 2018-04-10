@@ -156,17 +156,24 @@ def main():
 
         glands = []
 
-        with open(datasetPath + '1.jpg.csv', 'rt') as f:
+        with open(datasetPath + imgName + '.csv', 'rt') as f:
             reader = csv.reader(f)
+            gland = []
             for row in reader:
                 try:
                     cells = list(map(lambda x: int(x), filter(lambda x: x.strip() != "", row[0].split(";"))))
                     points = []
                     for i in range(1, int(np.size(cells, 0) / 2 - 1)):
                         points += [[cells[i * 2], cells[i * 2 + 1]]]
-                    glands += points
+
+                    gland += [points]
+                    if np.size(gland, 0) == 2:
+                        glands += [gland]
+                        gland = []
+
                 except:
                     continue
+
 
         print(imgName)
         detectGlands(img)
