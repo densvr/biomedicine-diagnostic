@@ -4,10 +4,17 @@ import random
 import cv2
 import csv
 import numpy as np
+# Standard scientific Python imports
+import matplotlib.pyplot as plt
+# Import datasets, classifiers and performance metrics
+from sklearn import datasets, svm, metrics
+
+
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
 datasetPath = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
 test = datasetPath + "1 (19).jpg"
+
 
 dictPhotos = {}
 dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
@@ -146,24 +153,31 @@ def generateSamples(image, gland, countInside, countOutside, sampleSize):
     nparr = np.array(gland[0])
     contourMask: np.ndarray = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
     cv2.drawContours(contourMask, [nparr], 0, color=255, thickness=-1)
-    i = 0
     insideImages = []
-    while i < countInside:
+    outsideImages = []
+    while np.size(insideImages, 0) < countInside or np.size(outsideImages, 0) < countOutside:
         (x, y) = random.randint(0, np.size(image, 0) - sampleSize[0] - 1), \
                  random.randint(0, np.size(image, 0) - sampleSize[1] - 1)
+
         if contourMask[int(x + sampleSize[0] / 2), int(y + sampleSize[1] / 2)] > 0:
             croppedImage = cropImage(image, (x, sampleSize[0], y, sampleSize[1]))
-            cv2.imshow("cropped", croppedImage)
-            cv2.waitKey()
-            #insideImages += croppedImage
+            if np.size(insideImages, 0) < countInside:
+                insideImages += [croppedImage]
+            else:
+                outsideImages += [croppedImage]
+            #cv2.imshow("cropped", croppedImage)
+            #cv2.waitKey()
+    return insideImages, outsideImages
 
-    return insideImages
+def flattenSamples(images):
+    return list(map(lambda x: flattenImage(x), images))
 
 
 def cropImage(image, rect):
     return image[max(rect[0], 0) : min(rect[0] + rect[1], np.size(image, 0)), max(rect[2], 0) : min(rect[2] + rect[3], np.size(image, 1))]
 
-
+def flattenImage(image):
+    return np.reshape(image, -1)
 
 def main():
     globalSum = 0
@@ -210,7 +224,22 @@ def main():
 
 
         #generate images
-        insideImages = generateSamples(srcImg, glands[0], 100, 100, (400, 400))
+        insideImages, outsideImages = generateSamples(srcImg, glands[0], 1500, 3000, (24, 24))
+
+        insideSamples = flattenSamples(insideImages)
+        outsideSamples = flattenSamples(outsideImages)
+
+        classifier = svm.SVC(gamma=0.001)
+
+        classifier.fit(insideSamples + outsideSamples, list(np.ones((np.size(insideSamples, 0)))) + list(np.zeros((np.size(outsideSamples, 0)))))
+
+        insideImages, outsideImages = generateSamples(srcImg, glands[0], 100, 100, (24, 24))
+        insideSamples = flattenSamples(insideImages)
+        outsideSamples = flattenSamples(outsideImages)
+
+        insidePredictions = classifier.predict(insideSamples)
+        outsidePredicitions = classifier.predict(outsideSamples)
+
 
 
         while 1:
