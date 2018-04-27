@@ -75,9 +75,14 @@ def showImage(name, img):
 def main():
     globalSum = 0
     globalCount = 0
-    for imgName in os.listdir(datasetPath):
-        img = cv2.imread(os.path.join(datasetPath, imgName))
-        srcImg = img
+
+    filesList = os.listdir(datasetPath)
+
+    glandsList = []
+
+    # generate samples
+    for fileName in filesList:
+        img = cv2.imread(os.path.join(datasetPath, fileName))
         try:
             img = cv2.resize(img, (800, 800))
         except:
@@ -88,7 +93,7 @@ def main():
 
         glands = []
 
-        with open(datasetPath + imgName + '.csv', 'rt') as f:
+        with open(datasetPath + fileName + '.csv', 'rt') as f:
             reader = csv.reader(f)
             gland = []
             for row in reader:
@@ -106,6 +111,22 @@ def main():
                 except:
                     continue
 
+        glandsList += [glands]
+
+    for fileIdx in range(0, len(filesList)):
+        img = cv2.imread(os.path.join(datasetPath, fileName))
+        srcImg = img
+        try:
+            img = cv2.resize(img, (800, 800))
+        except:
+            pass
+
+        if img is None:
+            continue
+
+        fileName = filesList[fileIdx]
+        glands = glandsList[fileIdx]
+
         imgWithLabelledGlands = srcImg.copy()
         for gland in glands:
             nparr = np.array(gland[0])
@@ -113,7 +134,7 @@ def main():
             nparr = np.array(gland[1])
             cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 255), 4)
 
-        showImage(imgName + " labelled glands", imgWithLabelledGlands)
+        showImage(fileName + " labelled glands", imgWithLabelledGlands)
 
         # generate images
         insideImages, outsideImages, insideRects, outsideRects = generateSamples(srcImg, glands[0], 500, 500,
@@ -127,7 +148,7 @@ def main():
         classifier.fit(insideSamples + outsideSamples,
                        list(np.ones((np.size(insideSamples, 0)))) + list(np.zeros((np.size(outsideSamples, 0)))))
 
-        while 1:
+        while True:
 
             insideImages, outsideImages, insideRects, outsideRects = generateSamples(srcImg, glands[0], 100, 100,
                                                                                      (100, 100), (10, 10), False)
@@ -155,9 +176,9 @@ def main():
             if k == 27:  # Esc key to stop
                 break
 
-        print(imgName)
+        print(fileName)
         # detectGlands(img)
-        # globalSum += calcPercentage(imgName, numberOfCells)
+        # globalSum += calcPercentage(fileName, numberOfCells)
         globalCount += 1
 
     print("Final percentage: ", globalSum / float(globalCount))
