@@ -68,8 +68,8 @@ def flattenImage(image):
 
 
 def showImage(name, img):
-    cv2.resize(img, (600, 600))
-    cv2.imshow(name, img)
+    resizedImg = cv2.resize(img, (600, 600))
+    cv2.imshow(name, resizedImg)
 
 
 def main():
@@ -114,6 +114,10 @@ def main():
         glandsList += [glands]
 
     for fileIdx in range(0, len(filesList)):
+
+        fileName = filesList[fileIdx]
+        glands = glandsList[fileIdx]
+
         img = cv2.imread(os.path.join(datasetPath, fileName))
         srcImg = img
         try:
@@ -124,8 +128,7 @@ def main():
         if img is None:
             continue
 
-        fileName = filesList[fileIdx]
-        glands = glandsList[fileIdx]
+
 
         imgWithLabelledGlands = srcImg.copy()
         for gland in glands:
@@ -135,6 +138,7 @@ def main():
             cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 255), 4)
 
         showImage(fileName + " labelled glands", imgWithLabelledGlands)
+        cv2.waitKey(0)
 
         # generate images
         insideImages, outsideImages, insideRects, outsideRects = generateSamples(srcImg, glands[0], 500, 500,
@@ -143,7 +147,7 @@ def main():
         insideSamples = flattenSamples(insideImages)
         outsideSamples = flattenSamples(outsideImages)
 
-        classifier = neural_network.MLPClassifier(hidden_layer_sizes=(100,))
+        classifier = neural_network.MLPClassifier(hidden_layer_sizes=(100,50))
 
         classifier.fit(insideSamples + outsideSamples,
                        list(np.ones((np.size(insideSamples, 0)))) + list(np.zeros((np.size(outsideSamples, 0)))))
