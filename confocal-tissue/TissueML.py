@@ -1,11 +1,10 @@
+import csv
 import os
 import random
 
 import cv2
-import csv
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import datasets, svm, metrics, neural_network
+from sklearn import neural_network
 
 datasetPath = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
 
@@ -76,7 +75,9 @@ def main():
     globalSum = 0
     globalCount = 0
 
-    filesList = os.listdir(datasetPath)
+    filesList = os.listdir(datasetPath)[0:20]
+
+    imageNameList = []
 
     glandsList = []
 
@@ -90,6 +91,8 @@ def main():
 
         if img is None:
             continue
+
+        imageNameList += [fileName]
 
         glands = []
 
@@ -113,9 +116,34 @@ def main():
 
         glandsList += [glands]
 
-    for fileIdx in range(0, len(filesList)):
+    insideImages, outsideImages, insideRects, outsideRects = [], [], [], []
 
-        fileName = filesList[fileIdx]
+    for fileIdx in range(0, len(imageNameList)):
+
+        fileName = imageNameList[fileIdx]
+        glands = glandsList[fileIdx]
+
+        srcImg = cv2.imread(os.path.join(datasetPath, fileName))
+
+        # generate images
+        curInsideImages, curOutsideImages, curInsideRects, curOutsideRects = \
+            generateSamples(srcImg, glands[0], 50, 50, (100, 100), (10, 10), False)
+        insideImages += curInsideImages
+        outsideImages += curOutsideImages
+        insideRects += curInsideRects
+        outsideRects += curOutsideRects
+
+    insideSamples = flattenSamples(insideImages)
+    outsideSamples = flattenSamples(outsideImages)
+
+    classifier = neural_network.MLPClassifier(hidden_layer_sizes=(100))
+
+    classifier.fit(insideSamples + outsideSamples,
+                   list(np.ones((np.size(insideSamples, 0)))) + list(np.zeros((np.size(outsideSamples, 0)))))
+
+    for fileIdx in range(0, len(imageNameList)):
+
+        fileName = imageNameList[fileIdx]
         glands = glandsList[fileIdx]
 
         img = cv2.imread(os.path.join(datasetPath, fileName))
@@ -128,29 +156,14 @@ def main():
         if img is None:
             continue
 
-
-
         imgWithLabelledGlands = srcImg.copy()
         for gland in glands:
             nparr = np.array(gland[0])
             cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 0), 4)
             nparr = np.array(gland[1])
             cv2.drawContours(imgWithLabelledGlands, [nparr], 0, (0, 255, 255), 4)
-
         showImage(fileName + " labelled glands", imgWithLabelledGlands)
         cv2.waitKey(0)
-
-        # generate images
-        insideImages, outsideImages, insideRects, outsideRects = generateSamples(srcImg, glands[0], 500, 500,
-                                                                                 (100, 100), (10, 10), False)
-
-        insideSamples = flattenSamples(insideImages)
-        outsideSamples = flattenSamples(outsideImages)
-
-        classifier = neural_network.MLPClassifier(hidden_layer_sizes=(100,50))
-
-        classifier.fit(insideSamples + outsideSamples,
-                       list(np.ones((np.size(insideSamples, 0)))) + list(np.zeros((np.size(outsideSamples, 0)))))
 
         while True:
 
