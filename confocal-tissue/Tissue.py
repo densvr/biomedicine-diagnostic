@@ -7,7 +7,6 @@ import numpy as np
 pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
 test = pathToImages + "1 (19).jpg"
 
-dictPhotos = {}
 dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
               17: 136,
               18: 110, 19: 856, 20: 819, 21: 964, 22: 885, 23: 928, 28: 915, 29: 770, 30: 164, 33: 43, 34: 23, 37: 44,
@@ -92,6 +91,9 @@ def process_image(img):
 # cv2.destroyAllWindows()
 
 def detectGlands(img):
+
+    #cv2.imshow("src", img)
+
     oimg = np.copy(img)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
@@ -106,6 +108,8 @@ def detectGlands(img):
     thresh, binMat = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
     # image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(oimg, contours, -1, (0, 255, 255), 1
+
+    #cv2.imshow("bin_before", binMat)
 
     binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=22)
     binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=33)
@@ -143,7 +147,11 @@ def calcPercentage(imgName, numberOfCells):
 def main():
     globalSum = 0
     globalCount = 0
+    count = 0
     for imgName in os.listdir(pathToImages):
+        count = count + 1
+        #if count < 2:
+        #    continue
         img = cv2.imread(os.path.join(pathToImages, imgName))
         try:
             img = cv2.resize(img, (800, 800))
