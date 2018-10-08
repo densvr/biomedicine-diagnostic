@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 from sklearn import neural_network
 
+from utils.dataset import readGlands
+
 datasetPath = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
 
 
@@ -16,7 +18,7 @@ def generateSamples(image, gland, countInside, countOutside, sampleSize, sampleR
     nparrInside = np.array(gland[0])
     nparrOutside = np.array(gland[1])
     contourMask: np.ndarray = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
-    #cv2.drawContours(contourMask, [nparrOutside], 0, color=255, thickness=-1)
+    # cv2.drawContours(contourMask, [nparrOutside], 0, color=255, thickness=-1)
     cv2.drawContours(contourMask, [nparrInside], 0, color=255, thickness=-1)
     insideImages = []
     outsideImages = []
@@ -58,7 +60,7 @@ def generateTestSamples(image, gland, countInside, countOutside, sampleSize, sam
     nparrInside = np.array(gland[0])
     nparrOutside = np.array(gland[1])
     contourMask: np.ndarray = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
-    #cv2.drawContours(contourMask, [nparrOutside], 0, color=255, thickness=-1)
+    # cv2.drawContours(contourMask, [nparrOutside], 0, color=255, thickness=-1)
     cv2.drawContours(contourMask, [nparrInside], 0, color=255, thickness=-1)
     insideImages = []
     outsideImages = []
@@ -125,46 +127,7 @@ def main():
 
     filesList = os.listdir(datasetPath)[0:40]
 
-    imageNameList = []
-
-    glandsList = []
-
-    # generate samples
-    for fileName in filesList:
-        img = cv2.imread(os.path.join(datasetPath, fileName))
-        try:
-            img = cv2.resize(img, (800, 800))
-        except:
-            pass
-
-        if img is None:
-            continue
-
-        imageNameList += [fileName]
-
-        glands = []
-
-        with open(datasetPath + fileName + '.csv', 'rt') as f:
-            reader = csv.reader(f)
-            gland = []
-            for row in reader:
-                try:
-                    cells = list(map(lambda x: int(x), filter(lambda x: x.strip() != "", row[0].split(";"))))
-                    points = []
-                    for i in range(1, int(np.size(cells, 0) / 2 - 1)):
-                        points += [[cells[i * 2], cells[i * 2 + 1]]]
-
-                    gland += [points]
-                    if np.size(gland, 0) == 2:
-                        glands += [gland]
-                        gland = []
-
-                except:
-                    continue
-
-        glandsList += [glands]
-
-    insideImages, outsideImages, insideRects, outsideRects = [], [], [], []
+    imageNameList, glandsList = readGlands(filesList, datasetPath)
 
     learningImageCount = int(len(imageNameList) / 2)
 
@@ -233,9 +196,11 @@ def main():
             count = 0
             for rect in rects:
                 if predictions[count] > 0.5:
-                    cv2.rectangle(imgOverlay, (rect[0], rect[2]), (rect[0] + rect[1], rect[2] + rect[3]), (0, 255, 0), -1)
+                    cv2.rectangle(imgOverlay, (rect[0], rect[2]), (rect[0] + rect[1], rect[2] + rect[3]), (0, 255, 0),
+                                  -1)
                 else:
-                    cv2.rectangle(imgOverlay, (rect[0], rect[2]), (rect[0] + rect[1], rect[2] + rect[3]), (0, 0, 255), -1)
+                    cv2.rectangle(imgOverlay, (rect[0], rect[2]), (rect[0] + rect[1], rect[2] + rect[3]), (0, 0, 255),
+                                  -1)
                 count += 1
 
             cv2.addWeighted(imgDraw, 0.8, imgOverlay, 0.2, 0, imgDraw)

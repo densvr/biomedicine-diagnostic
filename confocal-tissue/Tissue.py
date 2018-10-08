@@ -2,8 +2,12 @@ import os
 
 import cv2
 import numpy as np
+from random import shuffle
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
+from utils import dataset
+from utils.dataset import drawGland, resizeGland
+
 pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
 test = pathToImages + "1 (19).jpg"
 
@@ -82,7 +86,7 @@ def process_image(img):
     img = cv2.medianBlur(img, 5)
     #    cv2.imshow('median', img)
     numberOfCells = count_cells(img, oimg)
-    #cv2.imshow("final", oimg)
+    # cv2.imshow("final", oimg)
     k = cv2.waitKey(0)
 
     return numberOfCells
@@ -91,8 +95,7 @@ def process_image(img):
 # cv2.destroyAllWindows()
 
 def detectGlands(img):
-
-    #cv2.imshow("src", img)
+    # cv2.imshow("src", img)
 
     oimg = np.copy(img)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -100,6 +103,12 @@ def detectGlands(img):
     img = v
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     img = clahe.apply(img)
+    #cv2.imshow("chache", img)
+
+    # thresh, img = cv2.threshold(img, 230, 255, cv2.THRESH_BINARY)
+    # img = cv2.adaptiveThreshold(img, 100, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 0)
+    # cv2.imshow("thresh", img)
+
     kernel = np.ones((3, 3), np.uint8)
     img = cv2.erode(img, kernel, iterations=1)
     img = segment(img)
@@ -109,17 +118,19 @@ def detectGlands(img):
     # image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.drawContours(oimg, contours, -1, (0, 255, 255), 1
 
-    #cv2.imshow("bin_before", binMat)
+    # cv2.imshow("bin_before", binMat)
 
-    binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=22)
-    binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=33)
+    binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=25)
+    binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=34)
 
-    #cv2.imshow("bin", binMat)
-    #cv2.waitKey(0)
+    # cv2.imshow("bin", binMat)
+    # cv2.waitKey(0)
 
     cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
     image, contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    filteredContours = []
 
     for contour in contours:
 
@@ -128,43 +139,84 @@ def detectGlands(img):
             continue
 
         cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 2)
+        filteredContours += [contour]
 
     cv2.imshow("glands", oimg)
-    cv2.waitKey()
+
+    return filteredContours
 
 
-def calcPercentage(imgName, numberOfCells):
-    imageNumber = int(imgName.split('.')[0])
-    percentage = ((abs(dictPhotos[imageNumber] - numberOfCells)) / dictPhotos[imageNumber]) * 100
-    # print("ImageNumber: ", imageNumber, " cells: ", dictPhotos[imageNumber], " observed: ",\
-    #      numberOfCells, "percentage:", (100.0 -percentage), "or real:", percentage)
-    print("ImageNumber: ", imageNumber, " cells: ", dictPhotos[imageNumber], " observed: ", \
-          numberOfCells, "percentage:",
-          min(dictPhotos[imageNumber], numberOfCells) / max((dictPhotos[imageNumber], numberOfCells)))
-    return min(dictPhotos[imageNumber], numberOfCells) / max((dictPhotos[imageNumber], numberOfCells))
+def calcPercentage(image, labelledInnerGlands, detectedInnerContours):
+    mask1 = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
+    mask2 = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
+
+    mask1 = drawGland(mask1, labelledInnerGlands, 100)
+    mask2 = drawGland(mask2, detectedInnerContours, 100)
+    sum = mask1 + mask2
+
+    intersectsImage = np.copy(sum)
+    cv2.threshold(intersectsImage, 199, 255, cv2.THRESH_BINARY, intersectsImage)
+    intersectsCount = cv2.countNonZero(intersectsImage)
+
+    summaryImage = np.copy(sum)
+    cv2.threshold(summaryImage, 99, 255, cv2.THRESH_BINARY, summaryImage)
+    summaryCount = cv2.countNonZero(summaryImage)
+
+    if summaryCount == 0:
+        return 100
+    return intersectsCount / float(summaryCount) * 100.0
 
 
 def main():
     globalSum = 0
     globalCount = 0
-    count = 0
-    for imgName in os.listdir(pathToImages):
-        count = count + 1
-        #if count < 2:
+    imageNames = os.listdir(pathToImages)
+    imageNames.sort()
+    #shuffle(imageNames)
+    #imageNames = imageNames[0:40]
+
+    imageNameList, glandsList = dataset.readGlands(imageNames, pathToImages)
+
+    imageCount = int(len(imageNameList) / 2)
+
+    IMAGE_SIZE = 800
+
+    successCount = 0
+    for fileNum in range(0, imageCount):
+        # if count < 2:
         #    continue
-        img = cv2.imread(os.path.join(pathToImages, imgName))
+        imgName = imageNameList[fileNum]
+        srcImage = cv2.imread(os.path.join(pathToImages, imgName))
+
+        glands = glandsList[fileNum]
+        image = None
         try:
-            img = cv2.resize(img, (800, 800))
+            image = cv2.resize(srcImage, (IMAGE_SIZE, IMAGE_SIZE))
         except:
             pass
+        if image is None:
+            continue
 
-        if img is not None:
-            print(imgName)
-            detectGlands(img)
-            # globalSum += calcPercentage(imgName, numberOfCells)
-            globalCount += 1
+        print(imgName)
+        detectedInnerContours = detectGlands(image)
+
+        labelledInnerGlands = list(map(
+            lambda glandPair: resizeGland(glandPair[0], float(IMAGE_SIZE) / srcImage.shape[0],
+                                          float(IMAGE_SIZE) / srcImage.shape[1]), glands))
+
+        percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
+        globalSum += percentage
+
+        if percentage > 50:
+            successCount += 1
+
+        print("ImageNumber: ", fileNum, "percentage:", percentage)
+
+        globalCount += 1
+        #cv2.waitKey()
 
     print("Final percentage: ", globalSum / float(globalCount))
+    print("Success percentage > 70%: ", successCount / float(globalCount) * 100)
 
 
 main()
