@@ -57,8 +57,8 @@ def resizeGland(gland, coeffX, coeffY):
     return newGland
 
 
-def drawGland(img, glands, color=255):
+def drawGland(img, glands, color=255, stroke=-1):
     for gland in glands:
         nparr = np.array(gland).astype(numpy.int32)
-        cv2.drawContours(img, [nparr], 0, color, -1)
+        cv2.drawContours(img, [nparr], 0, color, stroke)
     return img

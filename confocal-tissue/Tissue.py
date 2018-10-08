@@ -1,4 +1,5 @@
 import os
+from shutil import rmtree
 
 import cv2
 import numpy as np
@@ -19,6 +20,8 @@ dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 
               58: 131, 60: 95, 61: 102,
               62: 100, 65: 53, 68: 100, 71: 95, 72: 100, 75: 19, 76: 27, 79: 6, 85: 38, 86: 26, 87: 50, 88: 71, 89: 34,
               90: 35, 91: 26, 92: 37}
+
+RESULTS_PATH = "./results/"
 
 
 def segment(img):
@@ -103,7 +106,7 @@ def detectGlands(img):
     img = v
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     img = clahe.apply(img)
-    #cv2.imshow("chache", img)
+    # cv2.imshow("chache", img)
 
     # thresh, img = cv2.threshold(img, 230, 255, cv2.THRESH_BINARY)
     # img = cv2.adaptiveThreshold(img, 100, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 0)
@@ -138,12 +141,12 @@ def detectGlands(img):
         if contourArea < 100 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
             continue
 
-        cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 2)
+        cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 4)
         filteredContours += [contour]
 
     cv2.imshow("glands", oimg)
 
-    return filteredContours
+    return filteredContours, oimg
 
 
 def calcPercentage(image, labelledInnerGlands, detectedInnerContours):
@@ -172,14 +175,17 @@ def main():
     globalCount = 0
     imageNames = os.listdir(pathToImages)
     imageNames.sort()
-    #shuffle(imageNames)
-    #imageNames = imageNames[0:40]
+    # shuffle(imageNames)
+    # imageNames = imageNames[0:40]
 
     imageNameList, glandsList = dataset.readGlands(imageNames, pathToImages)
 
     imageCount = int(len(imageNameList) / 2)
 
     IMAGE_SIZE = 800
+
+    rmtree(RESULTS_PATH)
+    os.mkdir(RESULTS_PATH)
 
     successCount = 0
     for fileNum in range(0, imageCount):
@@ -198,19 +204,24 @@ def main():
             continue
 
         print(imgName)
-        detectedInnerContours = detectGlands(image)
+        detectedInnerContours, oimg = detectGlands(image)
 
         labelledInnerGlands = list(map(
             lambda glandPair: resizeGland(glandPair[0], float(IMAGE_SIZE) / srcImage.shape[0],
                                           float(IMAGE_SIZE) / srcImage.shape[1]), glands))
 
-        percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
-        globalSum += percentage
+        drawGland(oimg, labelledInnerGlands, (0.0, 255.0, 0), 2)
 
-        if percentage > 50:
+        cv2.imshow("glands", oimg)
+
+        percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
+
+        globalSum += percentage
+        if percentage <= 33:
             successCount += 1
 
         print("ImageNumber: ", fileNum, "percentage:", percentage)
+        cv2.imwrite(RESULTS_PATH + imgName, oimg)
 
         globalCount += 1
         #cv2.waitKey()
