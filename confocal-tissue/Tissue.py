@@ -97,7 +97,7 @@ def process_image(img):
 
 # cv2.destroyAllWindows()
 
-def detectGlands(img):
+def detectGlands(img, attemptCount):
     # cv2.imshow("src", img)
 
     oimg = np.copy(img)
@@ -138,7 +138,7 @@ def detectGlands(img):
     for contour in contours:
 
         contourArea = cv2.contourArea(contour)
-        if contourArea < 100 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
+        if contourArea < attemptCount * 10 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
             continue
 
         cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 4)
@@ -189,8 +189,7 @@ def main():
 
     successCount = 0
     for fileNum in range(0, imageCount):
-        # if count < 2:
-        #    continue
+
         imgName = imageNameList[fileNum]
         srcImage = cv2.imread(os.path.join(pathToImages, imgName))
 
@@ -204,30 +203,35 @@ def main():
             continue
 
         print(imgName)
-        detectedInnerContours, oimg = detectGlands(image)
 
         labelledInnerGlands = list(map(
             lambda glandPair: resizeGland(glandPair[0], float(IMAGE_SIZE) / srcImage.shape[0],
                                           float(IMAGE_SIZE) / srcImage.shape[1]), glands))
 
-        drawGland(oimg, labelledInnerGlands, (0.0, 255.0, 0), 2)
+        for attemptCount in range(0, 100):
 
-        cv2.imshow("glands", oimg)
+            detectedInnerContours, oimg = detectGlands(image, attemptCount)
 
-        percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
+            drawGland(oimg, labelledInnerGlands, (0.0, 255.0, 0), 2)
 
-        globalSum += percentage
-        if percentage <= 33:
-            successCount += 1
+            cv2.imshow("glands", oimg)
 
-        print("ImageNumber: ", fileNum, "percentage:", percentage)
+            percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
+
+            print("ImageNumber: ", fileNum, "percentage:", percentage)
+
+            globalSum += percentage
+            if percentage <= 33:
+                successCount += 1
+
+            cv2.waitKey(0)
+
         cv2.imwrite(RESULTS_PATH + imgName, oimg)
 
         globalCount += 1
-        #cv2.waitKey()
 
-    print("Final percentage: ", globalSum / float(globalCount))
-    print("Success percentage > 70%: ", successCount / float(globalCount) * 100)
+        print("Final percentage: ", globalSum / float(globalCount))
+        print("Success percentage > 70%: ", successCount / float(globalCount) * 100)
 
 
 main()
