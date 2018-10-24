@@ -90,14 +90,14 @@ def process_image(img):
     #    cv2.imshow('median', img)
     numberOfCells = count_cells(img, oimg)
     # cv2.imshow("final", oimg)
-    k = cv2.waitKey(0)
+    # k = cv2.waitKey(0)
 
     return numberOfCells
 
 
 # cv2.destroyAllWindows()
 
-def detectGlands(img, attemptCount):
+def detectGlands(img, imgName, attemptCount):
     # cv2.imshow("src", img)
 
     oimg = np.copy(img)
@@ -108,26 +108,14 @@ def detectGlands(img, attemptCount):
     img = clahe.apply(img)
     # cv2.imshow("chache", img)
 
-    # thresh, img = cv2.threshold(img, 230, 255, cv2.THRESH_BINARY)
+    thresh, img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
     # img = cv2.adaptiveThreshold(img, 100, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 0)
-    # cv2.imshow("thresh", img)
+    cv2.imshow("thresh", img)
 
-    kernel = np.ones((3, 3), np.uint8)
-    img = cv2.erode(img, kernel, iterations=1)
-    img = segment(img)
-    img = threshold(img)
-    img = cv2.medianBlur(img, 5)
-    thresh, binMat = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-    # image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.drawContours(oimg, contours, -1, (0, 255, 255), 1
-
-    # cv2.imshow("bin_before", binMat)
-
-    binMat = cv2.dilate(binMat, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=25)
-    binMat = cv2.erode(binMat, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=34)
-
-    # cv2.imshow("bin", binMat)
-    # cv2.waitKey(0)
+    binMat = cv2.morphologyEx(img, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), None, None,
+                              iterations=27)
+    cv2.imshow("bin", binMat)
+    cv2.waitKey(0)
 
     cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
@@ -141,10 +129,24 @@ def detectGlands(img, attemptCount):
         if contourArea < attemptCount * 10 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
             continue
 
+        contourBin = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
+        cv2.drawContours(contourBin, [contour], -1, 255.0, 1)
+        contourBin = cv2.dilate(contourBin, cv2.getStructuringElement(cv2.MORPH_RECT, (55, 55)))
+        contourBin = cv2.bitwise_and(binMat, contourBin, None)
+
+        intersectsBin = cv2.bitwise_and(img, contourBin, None)
+        # cv2.imshow("intersects", intersectsBin)
+
+        contourArea = cv2.countNonZero(contourBin)
+        intersectsArea = cv2.countNonZero(intersectsBin)
+
+        if intersectsArea < contourArea * 0.40:
+            continue
+
         cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 4)
         filteredContours += [contour]
 
-    cv2.imshow("glands", oimg)
+    # cv2.imshow("glands", oimg)
 
     return filteredContours, oimg
 
@@ -208,30 +210,30 @@ def main():
             lambda glandPair: resizeGland(glandPair[0], float(IMAGE_SIZE) / srcImage.shape[0],
                                           float(IMAGE_SIZE) / srcImage.shape[1]), glands))
 
-        for attemptCount in range(0, 100):
+        # for attemptCount in range(0, 100):
 
-            detectedInnerContours, oimg = detectGlands(image, attemptCount)
+        detectedInnerContours, oimg = detectGlands(image, imgName, 0)
 
-            drawGland(oimg, labelledInnerGlands, (0.0, 255.0, 0), 2)
+        drawGland(oimg, labelledInnerGlands, (0.0, 255.0, 0), 2)
 
-            cv2.imshow("glands", oimg)
+        cv2.imshow("glands", oimg)
 
-            percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
+        percentage = calcPercentage(image, labelledInnerGlands, detectedInnerContours)
 
-            print("ImageNumber: ", fileNum, "percentage:", percentage)
+        print("ImageNumber: ", fileNum, "percentage:", percentage)
 
-            globalSum += percentage
-            if percentage <= 33:
-                successCount += 1
+        globalSum += percentage
+        if percentage < 33:
+            successCount += 1
 
-            cv2.waitKey(0)
+        #cv2.waitKey(0)
 
         cv2.imwrite(RESULTS_PATH + imgName, oimg)
 
         globalCount += 1
 
-        print("Final percentage: ", globalSum / float(globalCount))
-        print("Success percentage > 70%: ", successCount / float(globalCount) * 100)
+    print("Final percentage: ", globalSum / float(globalCount))
+    print("Success percentage > 70%: ", successCount / float(globalCount) * 100)
 
 
 main()
