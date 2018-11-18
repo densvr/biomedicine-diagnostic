@@ -9,7 +9,7 @@ from random import shuffle
 from utils import dataset
 from utils.dataset import drawGland, resizeGland
 
-pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/projects/biomedicine-diagnostic/dataset/tissue/"
+pathToImages = "../dataset/tissue/"
 test = pathToImages + "1 (19).jpg"
 
 dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
@@ -119,7 +119,7 @@ def detectGlands(img, imgName, attemptCount):
 
     cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
-    image, contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    image, contours = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
     filteredContours = []
 
