@@ -104,4 +104,5 @@ ENV/
 
 *Iconr
 
-confocal-tissue/results/*
+*/results/*
+results.*

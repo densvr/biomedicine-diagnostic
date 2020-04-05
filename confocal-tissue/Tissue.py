@@ -24,7 +24,7 @@ def detectGlands(img, imgName, attemptCount):
     img = v
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     img = clahe.apply(img)
-    # cv2.imshow("chache", img)
+    #cv2.imshow("chache", img)
 
     thresh, img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
     # img = cv2.adaptiveThreshold(img, 100, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 0)
@@ -37,9 +37,11 @@ def detectGlands(img, imgName, attemptCount):
 
     cv2.rectangle(binMat, (0, 0), (np.size(binMat, 0), np.size(binMat, 1)), 255, 10)
 
-    image, contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
     filteredContours = []
+
+    image = img
 
     for contour in contours:
 

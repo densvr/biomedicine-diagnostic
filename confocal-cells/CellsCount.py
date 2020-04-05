@@ -4,8 +4,7 @@ import cv2
 import numpy as np
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
-pathToImages = "/Users/danser/Google Drive/post graduate/cell couting on digital microscopy images/datasets/dataset/cells/"
-test = pathToImages + "1 (19).jpg"
+pathToImages = "../dataset/cells/"
 
 dictPhotos = {}
 dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
@@ -37,7 +36,7 @@ def threshold(img):
 
 def count_cells(img, oimg):
     ret, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
-    image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(oimg, contours, -1, (0, 255, 255), 1)
     # print("The number of cells are", len(contours))
 
@@ -59,9 +58,9 @@ def count_cells(img, oimg):
     return count
 
 
-def process_image(img):
-    oimg = np.copy(img)
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def process_image(srcImg):
+    oimg = np.copy(srcImg)
+    hsv = cv2.cvtColor(srcImg, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
     img = v
     # cv2.imshow("Gray2.tif", img)
@@ -83,7 +82,13 @@ def process_image(img):
     img = cv2.medianBlur(img, 5)
     #    cv2.imshow('median', img)
     numberOfCells = count_cells(img, oimg)
+
+
+    horizontalOutputImage = np.concatenate((srcImg, oimg), axis=1)
+    cv2.imshow("src + final", horizontalOutputImage)
+
     cv2.imshow("final", oimg)
+
     k = cv2.waitKey(0)
 
     return numberOfCells
@@ -108,10 +113,13 @@ def main():
     globalCount = 0
     for imgName in os.listdir(pathToImages):
         img = cv2.imread(os.path.join(pathToImages, imgName))
+
         #try:
         #    img = cv2.resize(img, (450, 450))
         #except:
         #    pass
+
+        #cv2.imshow("src", img)
 
         if img is not None:
             print(imgName)
