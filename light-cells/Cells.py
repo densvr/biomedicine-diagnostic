@@ -2,6 +2,7 @@ import os
 
 import cv2
 import numpy as np
+from scipy import ndimage
 
 dirname = '../dataset/light_cells/ER_sheika'
 # dirname = 'KM_zheleza'
@@ -50,52 +51,29 @@ def labeling(temp_color, temp_binary):
 
 def moja_funkcija(image):
     mat = image.copy().astype(float)
-
-    from scipy import ndimage
-
-    obradjen1 = ndimage.gaussian_laplace(mat, sigma=3)
-
-    obradjen2 = ndimage.gaussian_laplace(mat, sigma=6)
-
-    obradjen3 = ndimage.gaussian_laplace(mat, sigma=9)
-
-    norm_image = cv2.normalize(obradjen1 + obradjen2 + obradjen3, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
-                               dtype=cv2.CV_8U)
+    out1 = ndimage.gaussian_laplace(mat, sigma=3)
+    out2 = ndimage.gaussian_laplace(mat, sigma=6)
+    out3 = ndimage.gaussian_laplace(mat, sigma=9)
+    norm_image = cv2.normalize(out1 + out2 + out3, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     ret, otsu = cv2.threshold(norm_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
     return otsu
 
 
 def intensity_equalization(value, thresh=1):
     hist, bins = np.histogram(value.ravel(), 256, [0, 256])
-    # plt.hist(value.ravel(), 256, [0, 256])
-    # plt.show()
-
     chist = [hist[0]]
     for i in range(1, len(hist)):
         sum = 0
         for j in range(i):
             sum += hist[j]
         chist.append(sum)
-
     index = 0
     val = chist[len(chist) - 1] * (100 - thresh) / 100
     for k in range(len(chist)):
         if chist[k] > val:
             index = k
             break
-
-    # plt.plot(chist)
-    # plt.show()
-
     value[value > index] = index
-
-    # NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-
-    # value = value.astype('float')
-
-    # value = (((value - np.array(value).min()) * (255 - 0)) / float((value.max() - value.min()))) + 0
-    # cv2.imshow("value",value)
     return value
 
 

@@ -40,29 +40,20 @@ def detectGlands(img, imgName, attemptCount):
     contours, hierarchy = cv2.findContours(binMat, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
     filteredContours = []
-
     image = img
-
     for contour in contours:
-
         contourArea = cv2.contourArea(contour)
         if contourArea < attemptCount * 10 * 100 or contourArea > 0.9 * np.size(image, 0) * np.size(image, 1):
             continue
-
         contourBin = np.zeros((image.shape[0], image.shape[1], 1), np.uint8)
         cv2.drawContours(contourBin, [contour], -1, 255.0, 1)
         contourBin = cv2.dilate(contourBin, cv2.getStructuringElement(cv2.MORPH_RECT, (55, 55)))
         contourBin = cv2.bitwise_and(binMat, contourBin, None)
-
         intersectsBin = cv2.bitwise_and(img, contourBin, None)
-        # cv2.imshow("intersects", intersectsBin)
-
         contourArea = cv2.countNonZero(contourBin)
         intersectsArea = cv2.countNonZero(intersectsBin)
-
         if intersectsArea < contourArea * 0.40:
             continue
-
         cv2.drawContours(oimg, [contour], -1, (0.0, 0.0, 255.0), 4)
         filteredContours += [contour]
 

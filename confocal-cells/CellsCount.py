@@ -4,17 +4,21 @@ import cv2
 import numpy as np
 
 # pathToImages = "/home/slobodanka/Documents/masterThesis/CellsProject-master/images/"
-pathToImages = "../dataset/cells/"
+pathToImages = "../dataset/cells/cells_new"
 
 dictPhotos = {}
-dictPhotos = {1: 40, 2: 28, 3: 145, 4: 112, 8: 36, 9: 13, 10: 91, 11: 1516, 12: 362, 13: 419, 14: 257, 15: 228, 16: 121,
-              17: 136,
-              18: 110, 19: 856, 20: 819, 21: 964, 22: 885, 23: 928, 28: 915, 29: 770, 30: 164, 33: 43, 34: 23, 37: 44,
-              38: 52, 39: 52,
-              40: 147, 43: 92, 44: 63, 45: 136, 46: 97, 47: 113, 52: 44, 53: 42, 54: 50, 55: 41, 56: 35, 57: 159,
-              58: 131, 60: 95, 61: 102,
-              62: 100, 65: 53, 68: 100, 71: 95, 72: 100, 75: 19, 76: 27, 79: 6, 85: 38, 86: 26, 87: 50, 88: 71, 89: 34,
-              90: 35, 91: 26, 92: 37}
+dictPhotos = {
+    "1(5)": 11,
+    "1(6)": 11,
+    "1(7)": 95,
+    "1(9)": 12,
+    "1(13)": 360,
+    "1(30)": 145,
+    "1(31)": 128,
+    "1(38)": 45,
+    "1(41)": 189,
+    "1(42)": 123
+}
 
 
 def segment(img):
@@ -48,6 +52,9 @@ def count_cells(img, oimg):
             denom = 1
         cX = int(M['m10'] / denom)
         cY = int(M['m01'] / denom)
+
+        if cv2.contourArea(c) < 400:
+            continue
 
         if cX != cY:
             cv2.drawContours(oimg, [c], -1, (0, 255, 0), 2)
@@ -89,7 +96,7 @@ def process_image(srcImg):
 
     cv2.imshow("final", oimg)
 
-    k = cv2.waitKey(0)
+    #k = cv2.waitKey(0)
 
     return numberOfCells
 
@@ -98,20 +105,20 @@ def process_image(srcImg):
 
 
 def calcPercentage(imgName, numberOfCells):
-    imageNumber = int(imgName.split('.')[0])
-    percentage = ((abs(dictPhotos[imageNumber] - numberOfCells)) / dictPhotos[imageNumber]) * 100
+    imageName = imgName.split('.')[0]
     # print("ImageNumber: ", imageNumber, " cells: ", dictPhotos[imageNumber], " observed: ",\
     #      numberOfCells, "percentage:", (100.0 -percentage), "or real:", percentage)
-    print("ImageNumber: ", imageNumber, " cells: ", dictPhotos[imageNumber], " observed: ", \
-          numberOfCells, "percentage:",
-          min(dictPhotos[imageNumber], numberOfCells) / max((dictPhotos[imageNumber], numberOfCells)))
-    return min(dictPhotos[imageNumber], numberOfCells) / max((dictPhotos[imageNumber], numberOfCells))
+    percentage = min(dictPhotos[imageName], numberOfCells) / max((dictPhotos[imageName], numberOfCells)) * 100
+    print("ImageNumber: ", imageName, " cells: ", dictPhotos[imageName], " observed: ", \
+          numberOfCells, "percentage:", percentage)
+    return percentage
 
 
 def main():
     globalSum = 0
     globalCount = 0
-    for imgName in os.listdir(pathToImages):
+    dirs = os.listdir(pathToImages)
+    for imgName in dirs:
         img = cv2.imread(os.path.join(pathToImages, imgName))
 
         #try:
@@ -124,7 +131,7 @@ def main():
         if img is not None:
             print(imgName)
             numberOfCells = process_image(img)
-            #globalSum += calcPercentage(imgName, numberOfCells)
+            globalSum += calcPercentage(imgName, numberOfCells)
             globalCount += 1
 
     print("Final percentage: ", globalSum / float(globalCount))
