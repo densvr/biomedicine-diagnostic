@@ -1,13 +1,14 @@
 # biomedicine-diagnostic
-Репозиторий группы СПбПУ ИУС по анализу биомедицинских изображений
+Repository of the SPbPU ICST Biomedical Image Analysis Group
 
-## 1. Исследование ядер на препаратах конфокальной микроскопии
+## 1. Research of cells nuclei on confocal microscopy images
 
-Детектирование и подсчет ядер по их маркерам на изображениях конфокальной микроскопии
+Nuclei detection and counting by their markers on confocal microscopy images
 
+## 2. Research of cells nuclei on light microscopy images
 
-## 2. Исследование ядер на препаратах световой микроскопии
+Nuclei detection and counting by their markers on light microscopy images
 
-Детектирование и подсчет ядер по их маркерам на изображениях световой микроскопии
+## 3. Research of glands on confocal microscopy images
 
-## 3. Исследование желез на препаратах конфокальной микроскопии
+Endometrial glands borders detection on confocal microscopy images
